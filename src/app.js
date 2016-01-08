@@ -2,13 +2,13 @@ var UI = require('ui');
 var lights = [
   {
     title: 'Living Room',
-    subtitle: 'loading...',
-    address: 106,
+    subtitle: 'no state',
+    address: 'Zwolle',
   }, 
   {
     title: 'ESP8266',  
-    subtitle: 'loading...',
-    address: 177
+    subtitle: 'no state',
+    address: 'Deventer'
   }
 ];
 var menu = new UI.Menu({
@@ -24,63 +24,82 @@ menu.show(); // show lights and there states in menu
 
  
 menu.on('select', function(event) { // actionHandeler for lightToggles
-  toggleState(lights[event.itemIndex].address,event.itemIndex); 
+//  toggleState(lights[event.itemIndex].address,event.itemIndex); 
+  toggleState(event.itemIndex);
 });
 
 
  
 function getLightStates(){
   for(var i = 0; i<lights.length; i++){
-    var content = fetchLightState(lights[i].address);
-    if(content == "light: on"){
-      lights[i].subtitle = 'on';
-    } else if(content == "light: off"){
-      lights[i].subtitle = 'off';
-    } else{
-      lights[i].subtitle = 'no connection...';
-    }
+    fetchLightState(i);
   }
+  menu.show();
 }
 
 
-function fetchLightState(lightAddress){
+function fetchLightState(lightIndex){
+  var address = lights[lightIndex].address;
   var content = "";
   var req = new XMLHttpRequest();
-  req.open('GET','http://192.168.1.'+lightAddress+'/cgi-bin/json.cgi?get=state',true);
+ // req.open('GET','http://192.168.1.'+address+'/cgi-bin/json.cgi?get=state',false);
+  req.open('GET','http://api.openweathermap.org/data/2.5/weather?q='+address+'&appid=f9243c8dd03d09b687242bcf57715f48',false);
+  req.ontimeout = function (e) {
+    lights[lightIndex].subtitle = 'timout...';
+  };
+  
+  req.onerror = function (e) {
+    lights[lightIndex].subtitle = 'error...';
+  };
   req.onload = function () {
+    //lights[lightIndex].subtitle = 'loading...'+address;
     if (req.readyState === 4) {
       if (req.status === 200) {
         var response = JSON.parse(req.responseText);
-        content = response.content;
-        //var city = response.address.city;
+        content = response.name; // HAS TO BE CONTENT FOR PROPER JSON
         console.log("content: " + content);
         if(content !== "" && content !== undefined){
+          if(content == "light: on"){
+             lights[lightIndex].subtitle = 'on';
+          } else if(content == "light: off"){
+             lights[lightIndex].subtitle = 'off';
+          } else if(content == "Zwolle"){
+             lights[lightIndex].subtitle = 'Zwolle';
+          } else if(content == "Deventer"){
+             lights[lightIndex].subtitle = 'Deventer';
+          }
           return content;
         }
-      } 
+      } else{
+        lights[lightIndex].subtitle = 'bad request...';
+      }
     }
   };
   req.send(null);
 }
 
 
-function toggleState(lightAddress,lightIndex){
-   var content = fetchLightState(lightAddress);
-   var state = "";
-   if(content == "light: on"){
-      state ="off";
-    } else if(content == "light: off"){
-      state ="on";
-    }
-   var req = new XMLHttpRequest();
-   req.open('GET','http://192.168.1.'+lightAddress+'/cgi-bin/json.cgi?set='+state,true);
-   req.onload = function () {
+function toggleState(lightIndex){
+  var address = lights[lightIndex].address;
+  var content = fetchLightState(address);
+  var state = "";
+  if(content == "light: on"){
+    state ="off";
+  } else if(content == "light: off"){
+    state ="on";
+  }
+  var req = new XMLHttpRequest();
+  req.open('GET','http://192.168.1.'+address+'/cgi-bin/json.cgi?set='+state,false);
+  req.onload = function () {
     if (req.readyState === 4) {
       if (req.status === 200) {
-        lights[lightIndex].subtitle = state;
-        menu.show();
-        }   
-      } 
+        var response = JSON.parse(req.responseText);
+        content = response.content;
+        lights[lightIndex].subtitle = content;
+      } else{
+        return "no connection...";  
+      }  
+    } 
   };
   req.send(null);
 }
