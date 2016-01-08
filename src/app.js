@@ -3,12 +3,12 @@ var lights = [
   {
     title: 'Living Room',
     subtitle: 'no state',
-    address: 'Zwolle',
+    address: '106',
   }, 
   {
     title: 'ESP8266',  
     subtitle: 'no state',
-    address: 'Deventer'
+    address: '177'
   }
 ];
 var menu = new UI.Menu({
@@ -42,8 +42,8 @@ function fetchLightState(lightIndex){
   var address = lights[lightIndex].address;
   var content = "";
   var req = new XMLHttpRequest();
- // req.open('GET','http://192.168.1.'+address+'/cgi-bin/json.cgi?get=state',false);
-  req.open('GET','http://api.openweathermap.org/data/2.5/weather?q='+address+'&appid=f9243c8dd03d09b687242bcf57715f48',false);
+  req.open('GET','http://192.168.1.'+address+'/cgi-bin/json.cgi?get=state',false);
+ // req.open('GET','http://api.openweathermap.org/data/2.5/weather?q='+address+'&appid=f9243c8dd03d09b687242bcf57715f48',false);
   req.ontimeout = function (e) {
     lights[lightIndex].subtitle = 'timout...';
   };
@@ -83,9 +83,9 @@ function toggleState(lightIndex){
   var address = lights[lightIndex].address;
   var content = fetchLightState(address);
   var state = "";
-  if(content == "light: on"){
+  if(content == "light: on" || content == "light: off ^^!"){
     state ="off";
-  } else if(content == "light: off"){
+  } else if(content == "light: off" || content == "light: on ^^!"){
     state ="on";
   }
   var req = new XMLHttpRequest();
@@ -95,7 +95,7 @@ function toggleState(lightIndex){
       if (req.status === 200) {
         var response = JSON.parse(req.responseText);
         content = response.content;
-        lights[lightIndex].subtitle = content;
+        lights[lightIndex].subtitle = content; // check if this is wanted. Else sent opposite of state
       } else{
         return "no connection...";  
       }  
